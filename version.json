@@ -6,7 +6,7 @@
     },
     "versionHeightOffset": "45",
     "publicReleaseRefSpec": [
-        "^refs/heads/hta/android-fix$",
+        "^refs/heads/test/android-fix$",
         "^refs/heads/main$",
         "^refs/heads/master$",
         "^refs/tags/v\\d+\\.\\d+",

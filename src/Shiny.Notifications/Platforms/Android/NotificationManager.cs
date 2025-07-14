@@ -127,7 +127,7 @@ public partial class NotificationManager : INotificationManager,
         return Task.FromResult(status);
     } 
      
-    private async Task<NotificationAccessState> RequestAccess(AccessRequestFlags access)
+    public async Task<NotificationAccessState> RequestAccess(AccessRequestFlags access)
     { 
         var list = new List<string>();
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
@@ -262,5 +262,5 @@ public partial class NotificationManager : INotificationManager,
 
     public void ActivityOnCreate(Android.App.Activity activity, Bundle? savedInstanceState)
         => this.Handle(activity, activity.Intent!);
-    Task<NotificationAccessState> INotificationManager.RequestAccess(AccessRequestFlags flags) => throw new NotImplementedException();
+
 }
