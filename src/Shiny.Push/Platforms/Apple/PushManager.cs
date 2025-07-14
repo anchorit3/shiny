@@ -74,18 +74,14 @@ public class PushManager(
             .ContinueWith(x =>
             {
                 if (x.Exception != null)
-                {
                     logger.LogWarning(x.Exception, "Failed to auto start push");
-                }
                 else if (x.Result.Status != AccessState.Available)
                 {
                     // TODO: unregister delegate
                     logger.LogInformation("User has removed push notification access - " + x.Result.Status);
                 }
                 else
-                {
                     logger.LogInformation("PushManager still has user permissions");
-                }
             });
     }
 

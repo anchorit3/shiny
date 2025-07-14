@@ -81,9 +81,7 @@ public class NotificationManager : IAppleNotificationManager, IIosLifecycle.INot
             (approved, error) =>
             {
                 if (error != null)
-                {
                     tcs.SetException(new Exception(error.Description));
-                }
                 else
                 {
                     //var state = approved ? AccessState.Available : AccessState.Denied;
@@ -283,13 +281,9 @@ public class NotificationManager : IAppleNotificationManager, IIosLifecycle.INot
         if (!channel.CustomSoundPath.IsEmpty())
         {
             if (channel.Importance == ChannelImportance.Critical)
-            {
                 native.Sound = UNNotificationSound.GetCriticalSound(channel.CustomSoundPath!);
-            }
             else
-            {
                 native.Sound = UNNotificationSound.GetSound(channel.CustomSoundPath!);
-            }
         }
         else
         {

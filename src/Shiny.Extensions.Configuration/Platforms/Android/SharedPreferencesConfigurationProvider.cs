@@ -41,9 +41,7 @@ public class SharedPreferencesConfigurationProvider : ConfigurationProvider
             if (prefs?.All != null)
             {
                 foreach (var pair in prefs.All)
-                {
                     this.Data.Add(pair.Key, pair.Value.ToString());
-                }
             }
         }
     }

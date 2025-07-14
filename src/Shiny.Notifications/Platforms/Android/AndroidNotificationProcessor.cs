@@ -117,6 +117,7 @@ public class AndroidNotificationProcessor(
     {
         if (notification.RepeatInterval == null)
         {
+            // Remove Android Notification
             repository.Remove<AndroidNotification>(notification.Id.ToString());
         }
         else

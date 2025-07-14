@@ -47,13 +47,8 @@ public record AndroidPushNotification(
             {
                 var id = this.Platform.GetDrawableByName("notification");
                 if (id > 0)
-                {
                     builder.SetSmallIcon(id);
-                }
-                else if (this.Platform.AppContext.ApplicationInfo!.Icon > 0)
-                {
-                    builder.SetSmallIcon(this.Platform.AppContext.ApplicationInfo!.Icon);
-                }
+                else if (this.Platform.AppContext.ApplicationInfo!.Icon > 0) builder.SetSmallIcon(this.Platform.AppContext.ApplicationInfo!.Icon);
             }
             else
             {

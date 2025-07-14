@@ -47,12 +47,8 @@ public class IosPlatform : IPlatform
     public void InvokeOnMainThread(Action action)
     {
         if (NSThread.Current.IsMainThread)
-        {
             action();
-        }
         else
-        {
             NSRunLoop.Main.BeginInvokeOnMainThread(action);
-        }
     }
 }

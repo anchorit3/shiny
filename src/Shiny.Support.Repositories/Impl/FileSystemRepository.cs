@@ -46,13 +46,9 @@ public class FileSystemRepository : IRepository
         this.InTransaction<TEntity>(list =>
         {
             if (list.ContainsKey(identifier))
-            {
                 result = list[identifier];
-            }
             else
-            {
                 this.logger.GetNotExists(typeof(TEntity).Name, identifier, list.Count);
-            }
         });
         return result;
     }

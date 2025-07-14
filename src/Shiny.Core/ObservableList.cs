@@ -59,9 +59,7 @@ public class ObservableList<T> : ObservableCollection<T>, INotifyCollectionChang
         if (!itemsAdded)
         {
             if (notificationMode == NotifyCollectionChangedAction.Reset)
-            {
                 this.RaiseChangeNotificationEvents(action: NotifyCollectionChangedAction.Reset);
-            }
             else
             {
                 var changedItems = collection is List<T> ? (List<T>)collection : new List<T>(collection);

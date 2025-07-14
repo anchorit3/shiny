@@ -131,9 +131,7 @@ public class ObjectStoreBinder : IObjectStoreBinder, IDisposable
         IKeyValueStore? store = null;
 
         if (keyValueStoreAlias != null)
-        {
             store = this.factory.GetStore(keyValueStoreAlias);
-        }
         else
         {
             keyValueStoreAlias = npc

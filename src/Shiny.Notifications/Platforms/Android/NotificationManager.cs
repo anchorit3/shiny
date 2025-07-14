@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
@@ -21,6 +22,7 @@ public partial class NotificationManager : INotificationManager,
                                            IAndroidLifecycle.IOnActivityOnCreate,
                                            IAndroidLifecycle.IOnActivityNewIntent
 {
+    int requestCode;
     readonly Lazy<AndroidNotificationProcessor> processor;
     readonly AndroidPlatform platform;
     readonly AndroidNotificationManager manager;
@@ -74,16 +76,14 @@ public partial class NotificationManager : INotificationManager,
     public async Task Cancel(CancelScope scope = CancelScope.All)
     {
         if (scope == CancelScope.All || scope == CancelScope.DisplayedOnly)
-        {
             this.manager.NativeManager.CancelAll();
-        }
+        
         if (scope == CancelScope.All || scope == CancelScope.Pending)
         {
             var notifications = this.repository.GetList<AndroidNotification>();
             foreach (var notification in notifications)
-            {
                 await this.CancelInternal(notification).ConfigureAwait(false);
-            }
+            
             this.repository.Clear<AndroidNotification>();
             
         }
@@ -97,56 +97,38 @@ public partial class NotificationManager : INotificationManager,
     public Task<IReadOnlyList<Notification>> GetPendingNotifications()
         => Task.FromResult((IReadOnlyList<Notification>)this.repository.GetList<AndroidNotification>().OfType<Notification>().ToList());
 
-
-    /* - ANDROID 14 - https://developer.android.com/about/versions/14/changes/schedule-exact-alarms
-val alarmManager: AlarmManager = context.getSystemService<AlarmManager>()!!
-when {
-   // If permission is granted, proceed with scheduling exact alarms.
-   alarmManager.canScheduleExactAlarms() -> {
-       alarmManager.setExact(...)
-   }
-   else -> {
-       // Ask users to go to exact alarm page in system settings.
-       startActivity(Intent(ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-   }
-}
-
-    override fun onResume() {
-   …  
-   if (alarmManager.canScheduleExactAlarms()) {
-       // Set exact alarms.
-       alarmManager.setExact(...)
-   }
-   else {
-       // Permission not yet approved. Display user notice and revert to a fallback  
-       // approach.
-       alarmManager.setWindow(...)
-   }
-}
-
-
-    AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
-     */
-    //public Task<NotificationAccessState> RequestAccess(AccessRequestFlags flags)
-    //{
-
-    //}
     public Task<NotificationAccessState> GetCurrentAccess()
-    {
+    { 
         using var alarm = this.platform.GetSystemService<AlarmManager>(Context.AlarmService);
-        var notificationStatus = this.platform.GetCurrentPermissionStatus(P.PostNotifications);
+
+        var notificationStatus = AccessState.Available;
+
+        var areNotificationsEnabled = this.manager.NativeManager.AreNotificationsEnabled();
+        if (!areNotificationsEnabled)
+        {
+            // Disabled
+            notificationStatus = AccessState.Disabled;
+        }
+        else
+        {
+            if (OperatingSystem.IsAndroidVersionAtLeast(33))
+                notificationStatus = this.platform.GetCurrentPermissionStatus(P.PostNotifications);
+        }
 
         var status = new NotificationAccessState(
             notificationStatus,
-            this.geofenceManager.CurrentStatus,
-            alarm!.CanScheduleExactAlarms() ? AccessState.Available : AccessState.Restricted
+            AccessState.Unknown,
+            !OperatingSystem.IsAndroidVersionAtLeast(31)
+                ? AccessState.Available
+                : alarm.CanScheduleExactAlarms()
+                    ? AccessState.Available
+                    : AccessState.Restricted
         );
         return Task.FromResult(status);
-    }
-
-
-    public async Task<AccessState> RequestAccess(AccessRequestFlags access)
-    {
+    } 
+     
+    private async Task<NotificationAccessState> RequestAccess(AccessRequestFlags access)
+    { 
         var list = new List<string>();
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
             list.Add(P.PostNotifications); // required
@@ -157,61 +139,49 @@ when {
             if (OperatingSystem.IsAndroidVersionAtLeast(31))
                 list.Add(P.ScheduleExactAlarm);
         }
-             
+
         if (access.HasFlag(AccessRequestFlags.LocationAware))
             list.AddRange(new[] { P.AccessCoarseLocation, P.AccessFineLocation }); // required, along with access bg
-        
+
         var result = await this.platform.RequestPermissions(list.ToArray()).ToTask();
-        
+
         if (list.Contains(P.PostNotifications) && !result.IsGranted(P.PostNotifications))
-            return AccessState.Denied;
+            return await this.GetCurrentAccess();
 
-        if (access.HasFlag(AccessRequestFlags.LocationAware))
-        {
-            if (!result.IsGranted(P.AccessFineLocation))
-                return AccessState.Denied;
-
-            if (OperatingSystem.IsAndroidVersionAtLeast(29))
-            {
-                var bgResult = await this.platform.RequestAccess(P.AccessBackgroundLocation).ToTask();
-                if (bgResult != AccessState.Available)
-                    return AccessState.Denied;
-            }
-        }
+        if (!access.HasFlag(AccessRequestFlags.TimeSensitivity) || !OperatingSystem.IsAndroidVersionAtLeast(32))
+            return await this.GetCurrentAccess();
 
         if (access.HasFlag(AccessRequestFlags.TimeSensitivity) && OperatingSystem.IsAndroidVersionAtLeast(32))
         {
             using var alarm = this.platform.GetSystemService<AlarmManager>(Context.AlarmService);
-            if (!alarm.CanScheduleExactAlarms())
-            {
-                var tcs = new TaskCompletionSource();
-                using var _ = this.platform
-                    .WhenActivityStatusChanged()
-                    .Where(x => x.State == ActivityState.Resumed)
-                    .Take(1)
-                    .Subscribe(_ =>
-                    {
-                        tcs.SetResult();
-                    });
+            if (alarm.CanScheduleExactAlarms())
+                return await this.GetCurrentAccess();
 
-                // TODO: INotificationManager.Send will requestaccess and this will fail if running in a background job
-                    // TODO: notification will need a current state like other modules
-                //const SettingsKeyValueStore = ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                this.platform.CurrentActivity!.StartActivity(new Intent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM"));
-                await tcs.Task.ConfigureAwait(false);
+            // Task to await until we return to app
+            var tcs = new TaskCompletionSource();
 
-                if (!alarm.CanScheduleExactAlarms())
-                    return AccessState.Restricted;
-            }
+            var current = Interlocked.Increment(ref this.requestCode);
+
+            // watch when app will return to resumed state
+            using var _ = this.platform
+                .WhenActivityChanged()
+                .Where(x => x.State == Shiny.ActivityState.Resumed)
+                .Take(1)
+                .Subscribe(_ =>
+                {
+                    tcs.SetResult();
+                });
+
+            // Open special permissions page 
+            var intent = new Intent(Android.Provider.Settings.ActionRequestScheduleExactAlarm);
+            intent.SetData(Android.Net.Uri.FromParts("package", this.platform.CurrentActivity?.PackageName, null));
+            this.platform.CurrentActivity!.StartActivityForResult(intent, current);
+
+            //await result of resuming
+            await tcs.Task.ConfigureAwait(false);
         }
 
-        if (list.Contains(P.ScheduleExactAlarm) && !result.IsGranted(P.ScheduleExactAlarm))
-            return AccessState.Restricted;
-
-        if (!this.manager.NativeManager.AreNotificationsEnabled())
-            return AccessState.Disabled;
-
-        return AccessState.Available;
+        return await this.GetCurrentAccess();
     }
 
 

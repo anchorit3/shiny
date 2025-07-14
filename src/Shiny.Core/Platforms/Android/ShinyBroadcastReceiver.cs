@@ -21,10 +21,7 @@ public abstract class ShinyBroadcastReceiver : BroadcastReceiver
         var pendingResult = this.GoAsync();
         this.OnReceiveAsync(context, intent).ContinueWith(x =>
         {
-            if (x.IsFaulted)
-            {
-                this.LogError<ShinyBroadcastReceiver>(x.Exception!, "Error in broadcast receiver");
-            }
+            if (x.IsFaulted) this.LogError<ShinyBroadcastReceiver>(x.Exception!, "Error in broadcast receiver");
             pendingResult!.Finish();
         });
     }

@@ -64,9 +64,7 @@ public class IosLifecycleExecutor : IShinyStartupTask, IDisposable
         if (this.notificationHandlers != null && this.notificationHandlers.Any())
         {
             if (UNUserNotificationCenter.Current.Delegate != null)
-            {
                 this.logger.LogWarning("UNUserNotificationCenter is already set.  Shiny will not be able to run its notification delegates");
-            }
             else
             {
                 UNUserNotificationCenter.Current.Delegate = new ShinyUNUserNotificationCenterDelegate(

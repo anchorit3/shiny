@@ -81,9 +81,7 @@ public partial class AndroidPlatform
             this.AppContext.RegisterReceiver(receiver, filter, flags);
         }
         else
-        {
             this.AppContext.RegisterReceiver(new T(), filter);
-        }
     }
 
 

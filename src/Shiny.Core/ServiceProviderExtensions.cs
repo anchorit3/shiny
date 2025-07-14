@@ -112,13 +112,9 @@ public static class ServiceProviderExtensions
             interfaces.Remove(typeof(IShinyComponentStartup));
         }
         else
-        {
             services.AddSingleton(implementationType);
-        }
-        foreach (var iface in interfaces)
-        { 
-            services.AddSingleton(iface, sp => sp.GetRequiredService(implementationType));
-        }
+
+        foreach (var iface in interfaces) services.AddSingleton(iface, sp => sp.GetRequiredService(implementationType));
         return services;
     }
 

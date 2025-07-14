@@ -74,9 +74,7 @@ public class ChannelManager : IChannelManager, IShinyComponentStartup
             native.SetBypassDnd(true);
         }
         else
-        {
             attrBuilder.SetUsage(AudioUsageKind.Notification);
-        }
 
         switch (channel.Sound)
         {

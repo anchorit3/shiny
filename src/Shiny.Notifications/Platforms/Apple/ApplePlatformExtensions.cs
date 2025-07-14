@@ -36,9 +36,7 @@ public static class ApplePlatformExtensions
         if (native.Trigger is UNCalendarNotificationTrigger calendar)
         {
             if (!calendar.Repeats)
-            {
                 shiny.ScheduleDate = calendar.NextTriggerDate?.ToDateTime() ?? DateTime.Now;
-            }
             else
             {
                 var dc = calendar.DateComponents;
@@ -51,10 +49,7 @@ public static class ApplePlatformExtensions
                         (int)dc.Second
                     )
                 };
-                if (dc.Weekday < 8)
-                {
-                    shiny.RepeatInterval.DayOfWeek = (DayOfWeek)(int)(dc.Weekday - 1);
-                }
+                if (dc.Weekday < 8) shiny.RepeatInterval.DayOfWeek = (DayOfWeek)(int)(dc.Weekday - 1);
             }
         }
         else if (native.Trigger is UNTimeIntervalNotificationTrigger interval)
@@ -93,9 +88,8 @@ public static class ApplePlatformExtensions
             );
         }
         else
-        {
             response = new NotificationResponse(shiny, native.ActionIdentifier, null);
-        }
+
         return response;
     }
 }

@@ -111,9 +111,12 @@ public class AndroidNotificationManager(
         => platform.GetBroadcastPendingIntent<ShinyNotificationBroadcastReceiver>(
             ShinyNotificationBroadcastReceiver.AlarmIntentAction,
             PendingIntentFlags.UpdateCurrent,
-            0,
-            intent => intent.PutExtra(AndroidNotificationProcessor.IntentNotificationKey, notification.Id)
-        );
+            notification.Id,
+            intent =>
+            {
+                intent.SetAction($"{AndroidNotificationProcessor.IntentNotificationKey}.{notification.Id}");
+                intent.PutExtra(AndroidNotificationProcessor.IntentNotificationKey, notification.Id);
+            });
     
 
     public virtual PendingIntent GetLaunchPendingIntent(AndroidNotification notification)

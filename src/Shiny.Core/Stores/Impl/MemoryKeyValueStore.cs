@@ -27,9 +27,6 @@ public class MemoryKeyValueStore : IKeyValueStore
     });
     protected T Do<T>(Func<Dictionary<string, object>, T> worker)
     {
-        lock (this.syncLock)
-        {
-            return worker(this.values);
-        }
+        lock (this.syncLock) return worker(this.values);
     }
 }

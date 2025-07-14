@@ -20,10 +20,7 @@ public static class PlatformExtensions
                     .Replace("-", "")
                     .Replace("\"", "");
             }
-            else if (!deviceToken.Description.IsEmpty())
-            {
-                token = deviceToken.Description.Trim('<', '>');
-            }
+            else if (!deviceToken.Description.IsEmpty()) token = deviceToken.Description.Trim('<', '>');
         }
         return token;
     }

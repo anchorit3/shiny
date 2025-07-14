@@ -12,12 +12,7 @@ public static class Permissions
         if (manifestContent == null)
         {
             lock (syncLock)
-            {
-                if (manifestContent == null)
-                {
-                    manifestContent = File.ReadAllText("AppxManifest.xml");
-                }
-            }
+                if (manifestContent == null) manifestContent = File.ReadAllText("AppxManifest.xml");
         }
         return manifestContent;
     }
